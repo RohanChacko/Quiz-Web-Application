@@ -9,7 +9,8 @@
     "react": "^16.5.2",
     "react-dom": "^16.5.2",
     "react-materialize": "^2.4.5",
-    "react-scripts": "1.1.5"
+    "react-scripts": "1.1.5",
+    "react-swipeable-views": "^0.12.17"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -1,4 +1,5 @@
 import React, {Component} from 'react';
+import {BrowserRouter as Router, Switch, Route, Link} from 'react-router-dom';
 import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
 import {withStyles} from '@material-ui/core/styles';
@@ -9,7 +10,12 @@ import TableCell from '@material-ui/core/TableCell';
 import TableHead from '@material-ui/core/TableHead';
 import TableRow from '@material-ui/core/TableRow';
 import Paper from '@material-ui/core/Paper';
-import './Home.css'
+import Tabs from '@material-ui/core/Tabs';
+import Tab from '@material-ui/core/Tab';
+import SwipeableViews from 'react-swipeable-views';
+import AppBar from '@material-ui/core/AppBar';
+import './Home.css';
+import Quiz from './Quiz';
 
 const styles = theme => ({
   root: {
@@ -18,6 +24,7 @@ const styles = theme => ({
     marginTop: theme.spacing.unit * 3,
     overflowX: 'auto',
     margin: 250,
+    flexGrow: 1
   },
 
   button: {
@@ -46,57 +53,104 @@ const CustomTableCell = withStyles(theme => ({
   }
 }))(TableCell);
 
+function TabContainer({children, dir}) {
+  return (<Typography component="div" dir={dir} style={{
+      padding: 8 * 3
+    }}>
+    {children}
+  </Typography>);
+}
+
+TabContainer.propTypes = {
+  children: PropTypes.node.isRequired,
+  dir: PropTypes.string.isRequired
+};
+
 class Dashboard extends Component {
   constructor() {
     super();
     this.state = {
       data: [],
+      genreid: "",
     }
+    this.handlegenre = this.handlegenre.bind(this)
+  }
+  state = {
+    value: 0
+  };
+
+  handleChange = (event, value) => {
+    this.setState({value});
+  };
+
+  handleChangeIndex = index => {
+    this.setState({value: index});
+  };
+
+  handlegenre(event) {
+    event.preventDefault();
+    this.state.genreid = event.currentTarget.value;
+    const request = 'http://localhost:3000/Quiz/'+this.state.genreid;
+    window.location.assign(request);
   }
 
-  componentDidMount()  {
+  componentDidMount() {
     const request = new Request('http://localhost:8080/user/1/genre/show');
-    fetch(request).then(response => response.json())
-     .then(data => this.setState({data: data}));
+    fetch(request).then(response => response.json()).then(data => this.setState({data: data}));
   }
 
   render() {
-    const {classes} = this.props;
-    return (<div className="App">
-      <header className="App-header">
-        <Typography variant="display3" gutterBottom="gutterBottom" className="App-title">Create Quiz</Typography>
-        <Button type="submit" variant="outlined" color="secondary" className={classes.button}>
-          <Typography variant="headline" gutterBottom="gutterBottom" className="App-title">Choose Genre</Typography>
-        </Button>
-      </header>
-
-      <Paper className={classes.root}>
-        <Table className={classes.table}>
-          <TableHead>
-            <TableRow>
-              <TableCell numeric>Genre ID</TableCell>
-              <TableCell>Genre Name</TableCell>
-              <TableCell>Number of Quizes</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {
-              this.state.data.map(function(item, key) {
-                return (<TableRow className={classes.row} key={key}>
-                  <TableCell component="th" scope="row">{item.GenreID}</TableCell>
-                  <TableCell>{item.GenreName}</TableCell>
-                  <TableCell>{item.NumQuiz}</TableCell>
-                </TableRow>)
-              })
-            }
-          </TableBody>
-        </Table>
-      </Paper>
+    const {classes, theme} = this.props;
+    return (<div>
+      <Router>
+        <div className="App">
+          <AppBar position="static" color="default">
+            <Tabs value={this.state.value} onChange={this.handleChange} indicatorColor="primary" textColor="primary" fullWidth="fullWidth">
+              <Tab label="Create Genre"/>
+              <Tab label="View Genre"/>
+              <Tab label="Delete Genre"/>
+            </Tabs>
+          </AppBar>
+          <SwipeableViews axis={theme.direction === 'rtl'
+              ? 'x-reverse'
+              : 'x'} index={this.state.value} onChangeIndex={this.handleChangeIndex}>
+            <TabContainer dir={theme.direction}>Item One</TabContainer>
+            <TabContainer dir={theme.direction}>
+              <Paper className={classes.root}>
+                <Table className={classes.table}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell numeric="numeric">Genre ID</TableCell>
+                      <TableCell>Genre Name</TableCell>
+                      <TableCell>Number of Quizes</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {
+                      this.state.data.map(function(item, key) {
+                        return (<TableRow className={classes.row} key={key}>
+                          <TableCell component="th" scope="row">{item.ID}</TableCell>
+                          <TableCell>
+                            <Button value={item.ID} onClick ={this.handlegenre}>{item.GenreName}</Button>
+                          </TableCell>
+                          <TableCell>{item.NumQuiz}</TableCell>
+                        </TableRow>)
+                      }, this)
+                    }
+                  </TableBody>
+                </Table>
+              </Paper>
+            </TabContainer>
+            <TabContainer dir={theme.direction}>Give that ID cuz</TabContainer>
+          </SwipeableViews>
+        </div>
+      </Router>
     </div>);
   }
 }
 
 Dashboard.propTypes = {
-  classes: PropTypes.object.isRequired
+  classes: PropTypes.object.isRequired,
+  theme: PropTypes.object.isRequired
 };
-export default withStyles(styles)(Dashboard);
+export default withStyles(styles, {withTheme: true})(Dashboard);

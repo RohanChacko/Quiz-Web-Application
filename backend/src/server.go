@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	//"strconv"
+	"strconv"
 	//"encoding/json"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -26,36 +26,43 @@ type User struct {
 }
 
 type Genre struct {
-	GenreID   uint   `json: "genreid"; gorm:"primary_key;unique_index"`
+	ID   uint   `json: "genreid"; gorm:"primary_key;unique_index;"`
 	GenreName string `json: "genrename"`
 	NumQuiz   uint   `json: "numquiz"`
+	Quizes []Quiz
 }
 
 type Quiz struct {
-	QuizID    uint   `json: "quizid"; gorm:"primary_key;unique_index"`
+	ID    uint   `json: "quizid"; gorm:"primary_key;unique_index"`
 	QuizName  string `json: "quizname"`
-	GenreID   Genre  `json: "genreid" gorm: "ForeignKey:GenreID"`
+	GenreID   uint  `json: "genreid"`
 	HighScore uint   `json: "highscore"`
+	Questions []Question
 }
 
 type Question struct {
-	QuestionID uint   `json: "questionid"; gorm:"primary_key;unique_index"`
-	QuizID     Quiz   `json: "quizid" gorm: "ForeignKey:QuizID"`
+	ID uint   `json: "questionid"; gorm:"primary_key;unique_index"`
+	QuizID     uint   `json: "quizid"`
 	QnString   string `json: "qnstring" gorm: "type:varchar(300)"`
+	MulChoices []MulChoice
+	Matches []Match
 }
 
 type MulChoice struct {
-	ChoiceID     uint     `json: "choiceid"; gorm: "primary_key;unique_index"`
-	QuestionID   Question `json: "questionid" gorm: "primary_key"`
+	ID     uint     `json: "choiceid"; gorm: "primary_key;unique_index"`
+	QuestionID   uint `json: "questionid" gorm: "primary_key"`
 	ChoiceString string   `json: "choicestring"`
+	Matches []Match
 }
 
 type Match struct {
-	QuestionID Question  `json: "questionid" gorm: "ForeignKey:QuestionID; primary_key"`
-	ChoiceID   MulChoice `json: "choiceid" gorm: "ForeignKey: ChoiceID; primary_key"`
+	QuestionID uint  `json: "questionid" gorm: "primary_key"`
+	MulChoiceID   uint `json: "mulchoiceid" gorm: "primary_key"`
 	Answer     string    `json: "answerchoice"`
 }
 
+
+//Modify this table
 type LogTable struct {
 	UserID    User      `json:"userid" gorm: "ForeignKey: UserID; primary_key"`
 	QuizID    Quiz      `json: "quizid" gorm: "ForeignKey:QuizID; primary_key"`
@@ -87,13 +94,17 @@ func main() {
 
 	router.POST("/user/:userid/genre/create", CreateGenre)
 	router.GET("/user/:userid/genre/show", GetGenres)
-	router.GET("/user/:userid/genre/show/:genreid", GetGenre)
+	//router.GET("/user/:userid/genre/show/:genreid", GetGenre)
 	router.DELETE("/user/:userid/genre/delete/:genreid", DeleteGenre)
 
-	// router.POST("/user/:userid/quiz/create", CreateQuiz)
-	// router.GET("/user/:userid/quiz/show", GetQuizes)
-	// router.GET("/user/:userid/quiz/show/:quizid", GetQuiz)
-	// router.DELETE("/user/:userid/quiz/delete/:quizid", DeleteQuiz)
+	router.POST("/user/:userid/quiz/create/:genreid", CreateQuiz)
+	router.GET("/user/:userid/quiz/show/:genreid", GetQuizes)
+	//router.GET("/user/:userid/quiz/show/:genreid/:quizid", GetQuiz)
+	router.DELETE("/user/:userid/quiz/delete/:quizid", DeleteQuiz)
+
+	router.POST("/user/:userid/question/create/:quizid", CreateQuestion)
+	router.GET("/user/:userid/question/show/:quizid", GetQuestions)
+	router.DELETE("/user/:userid/question/delete/:questionid", DeleteQuestion)
 
 	router.Use((cors.Default()))
 	router.Run(":8080")
@@ -195,4 +206,104 @@ func DeleteGenre(c *gin.Context) {
 	fmt.Println(d)
 	c.Header("access-control-allow-origin", "*")
 	c.JSON(200, gin.H{"genreid #" + id: "deleted"})
+}
+
+func CreateQuiz(c *gin.Context) {
+	var quiz Quiz
+	c.BindJSON(&quiz)
+	d := c.Params.ByName("genreid")
+	u64, err := strconv.ParseUint(d, 10, 32)
+	if err != nil {
+        fmt.Println(err)
+    }
+  quiz.GenreID = uint(u64)
+	db.Create(&quiz)
+	c.Header("access-control-allow-origin", "*")
+	c.JSON(200, quiz)
+}
+
+func GetQuiz(c *gin.Context) {
+	id := c.Params.ByName("quizid")
+	var quiz Quiz
+	fmt.Println(id)
+
+	if err := db.Where("id = ?", id).First(&quiz).Error; err != nil {
+		c.AbortWithStatus(404)
+		fmt.Println(err)
+	} else {
+		c.Header("access-control-allow-origin", "*")
+		c.JSON(200, quiz)
+	}
+}
+
+func GetQuizes(c *gin.Context) {
+	var quizes []Quiz
+	genreid:= c.Params.ByName("genreid")
+	fmt.Println(genreid)
+	if err := db.Where("genre_id = ?", genreid).Find(&quizes).Error; err != nil {
+		c.AbortWithStatus(404)
+		fmt.Println(err)
+	} else {
+		c.Header("access-control-allow-origin", "*")
+		c.JSON(200, quizes)
+	}
+}
+
+func DeleteQuiz(c *gin.Context) {
+	id := c.Params.ByName("quizid")
+	var quiz Quiz
+	d := db.Where("id = ?", id).Delete(&quiz)
+	fmt.Println(d)
+	c.Header("access-control-allow-origin", "*")
+	c.JSON(200, gin.H{"quizid #" + id: "deleted"})
+}
+
+func CreateQuestion(c *gin.Context) {
+	var question Question
+	c.BindJSON(&question)
+	d := c.Params.ByName("quizid")
+	u64, err := strconv.ParseUint(d, 10, 32)
+	if err != nil {
+        fmt.Println(err)
+    }
+  question.QuizID = uint(u64)
+	db.Create(&question)
+	c.Header("access-control-allow-origin", "*")
+	c.JSON(200, question)
+}
+
+// func GetQuestion(c *gin.Context) {
+// 	id := c.Params.ByName("quizid")
+// 	var quiz Quiz
+// 	fmt.Println(id)
+//
+// 	if err := db.Where("id = ?", id).First(&quiz).Error; err != nil {
+// 		c.AbortWithStatus(404)
+// 		fmt.Println(err)
+// 	} else {
+// 		c.Header("access-control-allow-origin", "*")
+// 		c.JSON(200, quiz)
+// 	}
+// }
+
+func GetQuestions(c *gin.Context) {
+	var question []Question
+	quizid:= c.Params.ByName("quizid")
+	fmt.Println(quizid)
+	if err := db.Where("quiz_id = ?", quizid).Find(&question).Error; err != nil {
+		c.AbortWithStatus(404)
+		fmt.Println(err)
+	} else {
+		c.Header("access-control-allow-origin", "*")
+		c.JSON(200, question)
+	}
+}
+
+func DeleteQuestion(c *gin.Context) {
+	id := c.Params.ByName("questionid")
+	var question Question
+	d := db.Where("id = ?", id).Delete(&question)
+	fmt.Println(d)
+	c.Header("access-control-allow-origin", "*")
+	c.JSON(200, gin.H{"quizid #" + id: "deleted"})
 }

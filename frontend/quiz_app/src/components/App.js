@@ -25,7 +25,9 @@ import {BrowserRouter as Router, Switch, Route, Link} from 'react-router-dom';
 import Register from './Register';
 import Home from './Home';
 import Dashboard from './Dashboard';
-import './App.css'
+import './App.css';
+import Quiz from './Quiz';
+import Question from './Question';
 
 const styles = theme => ({
   root: {
@@ -114,8 +116,8 @@ class App extends Component {
   };
 
   handleSubmit(event) {
-    {/* event.preventDefault(); */
-    }
+    {/* event.preventDefault(); */}
+
     const data = 'http://localhost:8080/user/' + this.state.formData.email;
     fetch(data, {
       method: 'POST',
@@ -207,6 +209,8 @@ class App extends Component {
             <Route exact="exact" path='/Register' component={Register}/>
             <Route exact="exact" path='/Dashboard' component={Dashboard}></Route>
             <Route exact="exact" path='/Home' component={Home}/>
+            <Route exact="exact" path='/Quiz/:genreid' component={Quiz}/>
+            <Route exact="exact" path='/Question/:quizid' component={Question}/>
           </Switch>
         </div>
       </Router>
