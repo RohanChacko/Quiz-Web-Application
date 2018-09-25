@@ -27,14 +27,14 @@ const styles = theme => ({
     }
   },
   formControl: {
-    margin: theme.spacing.unit * 3,
+    margin: theme.spacing.unit * 3
   },
   paper: {
     marginTop: theme.spacing.unit * 8,
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    width: `${ 450}px`,
+    width: `${450}px`,
     padding: `${theme.spacing.unit * 2}px ${theme.spacing.unit * 3}px ${theme.spacing.unit * 3}px`
   },
   submit: {
@@ -58,25 +58,20 @@ class TakeQuiz extends Component {
         QnString: ""
       },
       i: 0,
-      fetchchoice: true
+      fetchchoice: true,
+      score: 0,
+      possibletruth: [],
+      postdata: {
+        userid: 0,
+        quizid: 0,
+        score: 0,
+      },
     }
 
-    this.handleSubmit = this.handleSubmit.bind(this);
     this.generateQuiz = this.generateQuiz.bind(this);
     this.handleiter = this.handleiter.bind(this);
     this.getchoices = this.getchoices.bind(this);
-  }
-
-  handleSubmit(event) {
-    event.preventDefault();
-    fetch('http://localhost:8080/register', {
-      method: 'POST',
-      body: JSON.stringify(this.state.formData)
-    }).then(response => {
-      if (response.status >= 200 && response.status < 300)
-        this.setState({submitted: true});
-      }
-    );
+    this.handleTruthCheck = this.handleTruthCheck.bind(this);
   }
 
   getchoices(id) {
@@ -90,6 +85,25 @@ class TakeQuiz extends Component {
   };
 
   generateQuiz() {
+
+    if(this.state.i == this.state.qndata.length )
+    {
+      window.alert("Final Score: "+(this.state.score));
+
+      this.state.postdata.score = this.state.score;
+      this.state.postdata.userid = 1;
+      this.state.postdata.quizid = Number(this.props.match.params.quizid);
+
+      fetch('http://localhost:8080/user/1/logtable/create', {
+        method: 'POST',
+        body: JSON.stringify(this.state.postdata)
+      });
+
+      const request = "/Leaderboard";
+      this.props.history.push(request);
+
+    }
+
     if (this.state.i < this.state.qndata.length) {
       this.getchoices(this.state.qndata[this.state.i].ID);
       return this.state.qndata[this.state.i];
@@ -97,11 +111,43 @@ class TakeQuiz extends Component {
 
   }
 
+  handleTruthCheck(ID, event) {
+
+    if(event.target.checked){
+      this.state.possibletruth.push(ID);
+    }
+    else{
+      var index = this.state.possibletruth.indexOf(ID);
+      if (index > -1) {
+        this.state.possibletruth.splice(index, 1);
+      }
+    }
+  }
+
   handleiter(event) {
+    var t1 = 0;
+    for (var p = 0; p < this.state.choicedata.length; p++) {
+      if (this.state.choicedata[p].Answer == true) {
+        t1++;
+      };
+    }
+    let unique = [...new Set(this.state.possibletruth)];
+
+    if (t1 == unique.length) {
+      this.setState({
+        score: this.state.score + 10
+      });
+    }
+
+    // window.alert(t1);
+    // window.alert(unique.length);
+    // window.alert(unique);
+    this.setState({possibletruth: []});
     this.setState({
       i: this.state.i + 1
     });
     this.setState({fetchchoice: true});
+
   }
 
   componentDidMount() {
@@ -130,15 +176,20 @@ class TakeQuiz extends Component {
                   <FormGroup>
                     {
                       this.state.choicedata.map(function(item, key) {
-                        return (
-                            <FormControlLabel control={<Checkbox onChange = {this.handleiter} value = {item.ChoiceString} />} label={item.ChoiceString}/>
-                          )
+                        return (<FormControlLabel key={item.ID} control={<Checkbox onChange = {
+                            this.handleTruthCheck.bind(item,item.ID)
+                          }
+                          value = {
+                            item.Answer
+                          } />} label={item.ChoiceString}/>)
                       }, this)
                     }
                   </FormGroup>
                 </FormControl>
                 <br/><br/><br/>
-                <Button variant="raised" color="primary" value={this.generateQuiz().ID} onClick={this.handleiter}>Next Question</Button>
+                <Button type ="submit" variant="raised" color="primary" value={this.generateQuiz().ID} onClick={this.handleiter}>Next Question</Button>
+
+                <Typography variant="headline">Score: {this.state.score}</Typography>
               </div>
           }
         </Paper>

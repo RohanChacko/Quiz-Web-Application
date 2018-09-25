@@ -128,8 +128,7 @@ class MulChoice extends Component {
       body: JSON.stringify(this.state.postmulchoicejson)
     }).then(response => {
       if (response.status >= 200 && response.status < 300)
-      {window.alert("The resturn",response.json())
-        this.setState({submitted: true});}
+          this.setState({submitted: true});
       }
     );
   };

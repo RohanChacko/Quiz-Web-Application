@@ -30,6 +30,7 @@ import Quiz from './Quiz';
 import Question from './Question';
 import MulChoice from './MulChoice';
 import TakeQuiz from './TakeQuiz';
+import LeaderBoard from './LeaderBoard';
 
 const styles = theme => ({
   root: {
@@ -161,6 +162,13 @@ class App extends Component {
                     Home
                   </Button>
                 </Link>
+
+                <Link to={'/LeaderBoard'} className="Link">
+                  <Button style={style}>
+                    LeaderBoard
+                  </Button>
+                </Link>
+
                 {
                   this.state.submitted &&
                   (<div>
@@ -215,11 +223,10 @@ class App extends Component {
             <Route exact="exact" path='/Question/:quizid' component={Question}/>
             <Route exact="exact" path='/MulChoice/:questionid' component={MulChoice}/>
             <Route exact="exact" path='/TakeQuiz/:quizid/:quizname' component={TakeQuiz}/>
+            <Route exact="exact" path='/LeaderBoard' component={LeaderBoard}/>
           </Switch>
         </div>
       </Router>
-
-      {/*<Dashboard submitted={this.state.submitted}/>*/}
     </div>);
   }
 }

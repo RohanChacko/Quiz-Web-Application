@@ -11,7 +11,7 @@ import (
 	// "./routes/callback"
 	// "./routes/login"
 	// "./app"
-	"time"
+	// "time"
 )
 
 var db *gorm.DB
@@ -26,53 +26,39 @@ type User struct {
 }
 
 type Genre struct {
-	ID   uint   `json: "genreid"; gorm:"primary_key;unique_index;"`
+	ID        uint   `json: "genreid"; gorm:"primary_key;unique_index;"`
 	GenreName string `json: "genrename"`
 	NumQuiz   uint   `json: "numquiz"`
-	Quizes []Quiz
 }
 
 type Quiz struct {
-	ID    uint   `json: "quizid"; gorm:"primary_key;unique_index"`
+	ID        uint   `json: "quizid"; gorm:"primary_key;unique_index"`
 	QuizName  string `json: "quizname"`
-	GenreID   uint  `json: "genreid"`
+	GenreID   uint   `json: "genreid"; gorm: "ForeignKey: GenreID"`
 	HighScore uint   `json: "highscore"`
-	Questions []Question
 }
 
 type Question struct {
-	ID uint   `json: "questionid"; gorm:"primary_key;unique_index"`
-	QuizID     uint   `json: "quizid"`
-	QnString   string `json: "qnstring"`
-	MulChoices []MulChoice
-	Matches []Match
+	ID       uint   `json: "questionid"; gorm:"primary_key;unique_index"`
+	QuizID   uint   `json: "quizid"; gorm: "ForeignKey: QuizID"`
+	QnString string `json: "qnstring"`
 }
 
 type MulChoice struct {
-	ID     uint     `json: "mulchoiceid"; gorm: "primary_key;unique_index"`
-	QuestionID   uint `json: "questionid"; gorm: "primary_key"`
-	ChoiceString string   `json: "choicestring"`
-	Answer bool `json: "answer"`
-	Matches []Match
+	ID           uint   `json: "mulchoiceid"; gorm: "primary_key;unique_index"`
+	QuestionID   uint   `json: "questionid"; gorm: "primary_key; ForeignKey: QuestionID"`
+	ChoiceString string `json: "choicestring"`
+	Answer       bool   `json: "answer"`
 }
 
-type Match struct {
-	QuestionID uint  `json: "questionid" gorm: "primary_key"`
-	MulChoiceID   uint `json: "mulchoiceid" gorm: "primary_key"`
-	Answer     bool    `json: "answerchoice"`
-}
-
-
-//Modify this table
 type LogTable struct {
-	UserID    User      `json:"userid" gorm: "ForeignKey: UserID; primary_key"`
-	QuizID    Quiz      `json: "quizid" gorm: "ForeignKey:QuizID; primary_key"`
+	UserID    uint      `json:"userid"; gorm: "primary_key; ForeignKey: UserID"`
+	QuizID    uint      `json: "quizid"; gorm: "primary_key; ForeignKey: QuizID"`
 	Score     uint      `json: "score"`
-	TimeTaken time.Time `json: timetaken`
 }
 
 func main() {
-	//app.Init()
+
 	db, err = gorm.Open("sqlite3", "./server.db")
 
 	if err != nil {
@@ -81,7 +67,7 @@ func main() {
 
 	defer db.Close()
 
-	db.AutoMigrate(&User{}, &Genre{}, &Quiz{}, &Question{}, &MulChoice{}, &Match{}, &LogTable{})
+	db.AutoMigrate(&User{}, &Genre{}, &Quiz{}, &Question{}, &MulChoice{}, &LogTable{})
 
 	router := gin.Default()
 
@@ -95,12 +81,10 @@ func main() {
 
 	router.POST("/user/:userid/genre/create", CreateGenre)
 	router.GET("/user/:userid/genre/show", GetGenres)
-	//router.GET("/user/:userid/genre/show/:genreid", GetGenre)
 	router.DELETE("/user/:userid/genre/delete/:genreid", DeleteGenre)
 
 	router.POST("/user/:userid/quiz/create/:genreid", CreateQuiz)
 	router.GET("/user/:userid/quiz/show/:genreid", GetQuizes)
-	//router.GET("/user/:userid/quiz/show/:genreid/:quizid", GetQuiz)
 	router.DELETE("/user/:userid/quiz/delete/:quizid", DeleteQuiz)
 
 	router.POST("/user/:userid/question/create/:quizid", CreateQuestion)
@@ -111,6 +95,9 @@ func main() {
 	router.GET("/user/:userid/mulchoice/show/:questionid", GetMulChoices)
 	router.DELETE("/user/:userid/mulchoice/delete/:mulchoiceid", DeleteMulChoice)
 
+	router.POST("/user/:userid/logtable/create", CreateLogTable)
+	router.GET("/user/:userid/logtable/show", GetLogTable)
+	router.DELETE("/user/:userid/logtable/delete/:quizid", DeleteGenre)
 
 	router.Use((cors.Default()))
 	router.Run(":8080")
@@ -126,7 +113,7 @@ func RegisterUser(c *gin.Context) {
 
 func Login(c *gin.Context) {
 	var user User
-	email:=c.Params.ByName("userid")
+	email := c.Params.ByName("userid")
 
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
 		c.AbortWithStatus(404)
@@ -180,20 +167,6 @@ func CreateGenre(c *gin.Context) {
 	c.JSON(200, genre)
 }
 
-func GetGenre(c *gin.Context) {
-	id := c.Params.ByName("genreid")
-	var genre Genre
-	fmt.Println(id)
-
-	if err := db.Where("id = ?", id).First(&genre).Error; err != nil {
-		c.AbortWithStatus(404)
-		fmt.Println(err)
-	} else {
-		c.Header("access-control-allow-origin", "*")
-		c.JSON(200, genre)
-	}
-}
-
 func GetGenres(c *gin.Context) {
 	var genres []Genre
 	if err := db.Find(&genres).Error; err != nil {
@@ -220,31 +193,17 @@ func CreateQuiz(c *gin.Context) {
 	d := c.Params.ByName("genreid")
 	u64, err := strconv.ParseUint(d, 10, 32)
 	if err != nil {
-        fmt.Println(err)
-    }
-  quiz.GenreID = uint(u64)
+		fmt.Println(err)
+	}
+	quiz.GenreID = uint(u64)
 	db.Create(&quiz)
 	c.Header("access-control-allow-origin", "*")
 	c.JSON(200, quiz)
 }
 
-func GetQuiz(c *gin.Context) {
-	id := c.Params.ByName("quizid")
-	var quiz Quiz
-	fmt.Println(id)
-
-	if err := db.Where("id = ?", id).First(&quiz).Error; err != nil {
-		c.AbortWithStatus(404)
-		fmt.Println(err)
-	} else {
-		c.Header("access-control-allow-origin", "*")
-		c.JSON(200, quiz)
-	}
-}
-
 func GetQuizes(c *gin.Context) {
 	var quizes []Quiz
-	genreid:= c.Params.ByName("genreid")
+	genreid := c.Params.ByName("genreid")
 	fmt.Println(genreid)
 	if err := db.Where("genre_id = ?", genreid).Find(&quizes).Error; err != nil {
 		c.AbortWithStatus(404)
@@ -270,31 +229,17 @@ func CreateQuestion(c *gin.Context) {
 	d := c.Params.ByName("quizid")
 	u64, err := strconv.ParseUint(d, 10, 32)
 	if err != nil {
-        fmt.Println(err)
-    }
-  question.QuizID = uint(u64)
+		fmt.Println(err)
+	}
+	question.QuizID = uint(u64)
 	db.Create(&question)
 	c.Header("access-control-allow-origin", "*")
 	c.JSON(200, question)
 }
 
-// func GetQuestion(c *gin.Context) {
-// 	id := c.Params.ByName("quizid")
-// 	var quiz Quiz
-// 	fmt.Println(id)
-//
-// 	if err := db.Where("id = ?", id).First(&quiz).Error; err != nil {
-// 		c.AbortWithStatus(404)
-// 		fmt.Println(err)
-// 	} else {
-// 		c.Header("access-control-allow-origin", "*")
-// 		c.JSON(200, quiz)
-// 	}
-// }
-
 func GetQuestions(c *gin.Context) {
 	var questions []Question
-	quizid:= c.Params.ByName("quizid")
+	quizid := c.Params.ByName("quizid")
 
 	if err := db.Where("quiz_id = ?", quizid).Find(&questions).Error; err != nil {
 		c.AbortWithStatus(404)
@@ -322,9 +267,9 @@ func CreateMulChoice(c *gin.Context) {
 	d := c.Params.ByName("questionid")
 	u64, err := strconv.ParseUint(d, 10, 32)
 	if err != nil {
-        fmt.Println(err)
-    }
-  mulchoice.QuestionID = uint(u64)
+		fmt.Println(err)
+	}
+	mulchoice.QuestionID = uint(u64)
 	db.Create(&mulchoice)
 	c.Header("access-control-allow-origin", "*")
 	c.JSON(200, mulchoice)
@@ -350,4 +295,34 @@ func DeleteMulChoice(c *gin.Context) {
 	fmt.Println(d)
 	c.Header("access-control-allow-origin", "*")
 	c.JSON(200, gin.H{"quizid #" + id: "deleted"})
+}
+
+func CreateLogTable(c *gin.Context) {
+	var logtable LogTable
+	c.BindJSON(&logtable)
+	db.Create(&logtable)
+	c.Header("access-control-allow-origin", "*")
+	c.JSON(200, logtable)
+}
+
+func GetLogTable(c *gin.Context) {
+	var logtable []LogTable
+	if err := db.Find(&logtable).Error; err != nil {
+		c.AbortWithStatus(404)
+		fmt.Println(err)
+	} else {
+		c.Header("access-control-allow-origin", "*")
+		c.JSON(200, logtable)
+	}
+}
+
+func DeleteLogTable(c *gin.Context) {
+	//userid := c.Params.ByName("userid")
+	quizid := c.Params.ByName("quizid")
+
+	var logtable LogTable
+	d := db.Where("quiz_id = ?", quizid).Delete(&logtable)
+	fmt.Println(d)
+	c.Header("access-control-allow-origin", "*")
+	c.JSON(200, gin.H{"quizid #" + quizid: "deleted"})
 }
