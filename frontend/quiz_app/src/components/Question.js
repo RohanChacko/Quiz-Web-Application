@@ -14,6 +14,9 @@ import Tabs from '@material-ui/core/Tabs';
 import Tab from '@material-ui/core/Tab';
 import SwipeableViews from 'react-swipeable-views';
 import AppBar from '@material-ui/core/AppBar';
+import FormControl from '@material-ui/core/FormControl';
+import Input from '@material-ui/core/Input';
+import InputLabel from '@material-ui/core/InputLabel';
 import './Home.css';
 
 const styles = theme => ({
@@ -31,6 +34,10 @@ const styles = theme => ({
   },
   input: {
     display: 'none'
+  },
+  form: {
+    width: '100%',
+    marginTop: theme.spacing.unit
   },
   table: {
     minWidth: 1000
@@ -71,8 +78,17 @@ class Question extends Component {
     this.state = {
       data: [],
       questionid: "",
+      postquestionjson: {
+        qnstring: "",
+        quizid: 0,
+      },
+      deletequestionid: "",
     }
-    this.handlequestion  = this.handlequestion.bind(this)
+    this.handlequestion  = this.handlequestion.bind(this);
+    this.handleQuestionVal = this.handleQuestionVal.bind(this);
+    this.handleSubmit = this.handleSubmit.bind(this);
+    this.handleDelQuestionID = this.handleDelQuestionID.bind(this);
+    this.handleDelete = this.handleDelete.bind(this);
   }
   state = {
     value: 0
@@ -86,11 +102,38 @@ class Question extends Component {
     this.setState({value: index});
   };
 
+  handleSubmit(event) {
+
+    this.state.postquestionjson.quizid = this.props.match.params.quizid;
+    const request = 'http://localhost:8080/user/1/question/create/' + this.props.match.params.quizid;
+    fetch(request, {
+      method: 'POST',
+      body: JSON.stringify(this.state.postquestionjson)
+    }).then(response => {
+      if (response.status >= 200 && response.status < 300)
+        this.setState({submitted: true});
+      }
+    );
+  };
+
+  handleQuestionVal(event) {
+    this.state.postquestionjson.qnstring = event.target.value;
+  };
+
+  handleDelQuestionID(event) {
+    this.setState({deletequestionid: event.target.value});
+  };
+
+  handleDelete(event) {
+    var string = "http://localhost:8080/user/1/question/delete/" + this.state.deletequestionid;
+    fetch(string, {method: 'DELETE'});
+  };
 
   handlequestion(event) {
     this.state.questionid = event.currentTarget.value;
-    const request = "http://localhost:3000/MulChoice/" + this.state.questionid;
-    window.location.assign(request);
+    const request = "/MulChoice/" + this.state.questionid;
+    // window.location.assign(request);
+    this.props.history.push(request);
   }
 
   componentDidMount() {
@@ -120,7 +163,24 @@ class Question extends Component {
           axis={theme.direction === 'rtl' ? 'x-reverse' : 'x'}
           index={this.state.value}
           onChangeIndex={this.handleChangeIndex}>
-          <TabContainer dir={theme.direction}>Item One</TabContainer>
+          <TabContainer dir={theme.direction}>
+            <Typography variant="display2">Create Question
+            </Typography>
+
+            <form className={classes.form} onSubmit={this.handleSubmit}>
+              <FormControl margin="normal" required="required" fullWidth="fullWidth">
+                <InputLabel htmlFor="question">
+                  Question
+                </InputLabel >
+                <Input name="questionval" type="questionval" id="questionval" value={this.state.questionnameval} onChange={this.handleQuestionVal}/>
+              </FormControl>
+              <br/>
+              <Button type="submit" variant="raised" color="primary" className={classes.submit}>
+                Create
+              </Button >
+            </form>
+
+          </TabContainer>
           <TabContainer dir={theme.direction}>
       <Paper className={classes.root}>
         <Table className={classes.table}>
@@ -145,7 +205,25 @@ class Question extends Component {
         </Table>
       </Paper>
     </TabContainer>
-    <TabContainer dir={theme.direction}>Give that ID cuz</TabContainer>
+    <TabContainer dir={theme.direction}>
+
+      <Typography variant="display2">Input Question ID
+        </Typography>
+
+        <form className={classes.form} onSubmit={this.handleDelete}>
+          <FormControl margin="normal" required="required">
+            <InputLabel htmlFor="question">
+              Question ID
+            </InputLabel >
+            <Input name="questionid" type="questionid" id="questionid" value={this.state.deletequestionid} onChange={this.handleDelQuestionID}/>
+          </FormControl>
+          <br/>
+          <Button type="submit" variant="raised" color="secondary" className={classes.submit}>
+            Delete
+          </Button >
+        </form>
+
+    </TabContainer>
   </SwipeableViews>
     </div>);
   }

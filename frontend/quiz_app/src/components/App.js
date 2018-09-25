@@ -28,6 +28,8 @@ import Dashboard from './Dashboard';
 import './App.css';
 import Quiz from './Quiz';
 import Question from './Question';
+import MulChoice from './MulChoice';
+import TakeQuiz from './TakeQuiz';
 
 const styles = theme => ({
   root: {
@@ -211,6 +213,8 @@ class App extends Component {
             <Route exact="exact" path='/Home' component={Home}/>
             <Route exact="exact" path='/Quiz/:genreid' component={Quiz}/>
             <Route exact="exact" path='/Question/:quizid' component={Question}/>
+            <Route exact="exact" path='/MulChoice/:questionid' component={MulChoice}/>
+            <Route exact="exact" path='/TakeQuiz/:quizid/:quizname' component={TakeQuiz}/>
           </Switch>
         </div>
       </Router>

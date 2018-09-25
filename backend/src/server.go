@@ -43,22 +43,23 @@ type Quiz struct {
 type Question struct {
 	ID uint   `json: "questionid"; gorm:"primary_key;unique_index"`
 	QuizID     uint   `json: "quizid"`
-	QnString   string `json: "qnstring" gorm: "type:varchar(300)"`
+	QnString   string `json: "qnstring"`
 	MulChoices []MulChoice
 	Matches []Match
 }
 
 type MulChoice struct {
-	ID     uint     `json: "choiceid"; gorm: "primary_key;unique_index"`
-	QuestionID   uint `json: "questionid" gorm: "primary_key"`
+	ID     uint     `json: "mulchoiceid"; gorm: "primary_key;unique_index"`
+	QuestionID   uint `json: "questionid"; gorm: "primary_key"`
 	ChoiceString string   `json: "choicestring"`
+	Answer bool `json: "answer"`
 	Matches []Match
 }
 
 type Match struct {
 	QuestionID uint  `json: "questionid" gorm: "primary_key"`
 	MulChoiceID   uint `json: "mulchoiceid" gorm: "primary_key"`
-	Answer     string    `json: "answerchoice"`
+	Answer     bool    `json: "answerchoice"`
 }
 
 
@@ -105,6 +106,11 @@ func main() {
 	router.POST("/user/:userid/question/create/:quizid", CreateQuestion)
 	router.GET("/user/:userid/question/show/:quizid", GetQuestions)
 	router.DELETE("/user/:userid/question/delete/:questionid", DeleteQuestion)
+
+	router.POST("/user/:userid/mulchoice/create/:questionid", CreateMulChoice)
+	router.GET("/user/:userid/mulchoice/show/:questionid", GetMulChoices)
+	router.DELETE("/user/:userid/mulchoice/delete/:mulchoiceid", DeleteMulChoice)
+
 
 	router.Use((cors.Default()))
 	router.Run(":8080")
@@ -287,15 +293,15 @@ func CreateQuestion(c *gin.Context) {
 // }
 
 func GetQuestions(c *gin.Context) {
-	var question []Question
+	var questions []Question
 	quizid:= c.Params.ByName("quizid")
-	fmt.Println(quizid)
-	if err := db.Where("quiz_id = ?", quizid).Find(&question).Error; err != nil {
+
+	if err := db.Where("quiz_id = ?", quizid).Find(&questions).Error; err != nil {
 		c.AbortWithStatus(404)
 		fmt.Println(err)
 	} else {
 		c.Header("access-control-allow-origin", "*")
-		c.JSON(200, question)
+		c.JSON(200, questions)
 	}
 }
 
@@ -303,6 +309,44 @@ func DeleteQuestion(c *gin.Context) {
 	id := c.Params.ByName("questionid")
 	var question Question
 	d := db.Where("id = ?", id).Delete(&question)
+	fmt.Println(d)
+	c.Header("access-control-allow-origin", "*")
+	c.JSON(200, gin.H{"quizid #" + id: "deleted"})
+}
+
+func CreateMulChoice(c *gin.Context) {
+	var mulchoice MulChoice
+	c.BindJSON(&mulchoice)
+	fmt.Println(mulchoice.Answer)
+	fmt.Println(mulchoice.ChoiceString)
+	d := c.Params.ByName("questionid")
+	u64, err := strconv.ParseUint(d, 10, 32)
+	if err != nil {
+        fmt.Println(err)
+    }
+  mulchoice.QuestionID = uint(u64)
+	db.Create(&mulchoice)
+	c.Header("access-control-allow-origin", "*")
+	c.JSON(200, mulchoice)
+}
+
+func GetMulChoices(c *gin.Context) {
+	var mulchoices []MulChoice
+	questionid := c.Params.ByName("questionid")
+	fmt.Println(questionid)
+	if err := db.Where("question_id = ?", questionid).Find(&mulchoices).Error; err != nil {
+		c.AbortWithStatus(404)
+		fmt.Println(err)
+	} else {
+		c.Header("access-control-allow-origin", "*")
+		c.JSON(200, mulchoices)
+	}
+}
+
+func DeleteMulChoice(c *gin.Context) {
+	id := c.Params.ByName("mulchoiceid")
+	var mulchoice MulChoice
+	d := db.Where("id = ?", id).Delete(&mulchoice)
 	fmt.Println(d)
 	c.Header("access-control-allow-origin", "*")
 	c.JSON(200, gin.H{"quizid #" + id: "deleted"})
