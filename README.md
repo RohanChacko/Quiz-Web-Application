@@ -17,6 +17,8 @@ Quiz Web App made with React for frontend and Go for frontend. Go uses the Gin f
   brew install node   
   npm install -g yarn
   ```
+
+### Installing React dependencies
 ``` yarn install ```
 
 ## Running the Application
@@ -65,7 +67,8 @@ Quiz Web App made with React for frontend and Go for frontend. Go uses the Gin f
 │       │   ├── index.js
 │       │   └── registerServiceWorker.js
 │       └── yarn.lock
-└── README.md ```
+└── README.md
+```
 
 ## Additional Notes
 
