@@ -76,3 +76,7 @@ Quiz Web App made with React for frontend and Go for frontend. Go uses the Gin f
 * Admin user can create, edit, delete quizes
 * Various levels of diffculty for a range of genres available
 * All frontend components were made using Material UI
+
+## License
+The MIT License https://rohanc.mit-license.org/  
+Copyright &copy; 2019 Rohan Chacko <rohanchacko007@gmail.com>
